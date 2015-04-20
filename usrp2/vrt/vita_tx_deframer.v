@@ -28,7 +28,7 @@ module vita_tx_deframer
     input src_rdy_i,
     output dst_rdy_o,
     
-    output [5+64+16+(32*MAXCHAN)-1:0] sample_fifo_o,
+    output [1+64+5+64+16+(32*MAXCHAN)-1:0] sample_fifo_o,
     output sample_fifo_src_rdy_o,
     input sample_fifo_dst_rdy_i,
 
@@ -41,7 +41,7 @@ module vita_tx_deframer
     output [31:0] debug
     );
 
-   localparam FIFOWIDTH = 5+64+16+(32*MAXCHAN);
+   localparam FIFOWIDTH = 1+64+5+64+16+(32*MAXCHAN);
    
    wire [1:0] numchan = 0;/*
    setting_reg #(.my_addr(BASE), .at_reset(0), .width(2)) sr_numchan
@@ -214,7 +214,7 @@ module vita_tx_deframer
    assign line_done = (MAXCHAN == 1)? 1 : (vector_phase == numchan);
    
    wire [FIFOWIDTH-1:0] fifo_i;
-   reg [63:0] 		      send_time;
+   reg [63:0] 		      send_time, classid;
    
    always @(posedge clk)
      case(vita_state)
@@ -222,6 +222,10 @@ module vita_tx_deframer
 	 send_time[63:32] <= data_i[31:0];
        VITA_TICS2 :
 	 send_time[31:0] <= data_i[31:0];
+		 VITA_CLASSID :
+	 classid[63:32] <= data_i[31:0];
+		 VITA_CLASSID2 :
+	 classid[31:0] <= data_i[31:0];
      endcase // case (vita_state)
 
    //sample registers for de-framing a vector input
@@ -251,7 +255,7 @@ module vita_tx_deframer
 
    // sob, eob, has_tics (send_at) ignored on all lines except first
    assign fifo_i = {samples,seqnum_err,has_tics_reg,is_sob_reg,is_eob_reg,eop,
-		    12'd0,seqnum_reg[3:0],send_time};
+		    12'd0,seqnum_reg[3:0],send_time,has_classid_reg,classid};
 
    assign debug = { { 8'b0 },
 		    { 8'b0 },

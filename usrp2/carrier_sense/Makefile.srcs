@@ -1,0 +1,27 @@
+#
+# Copyright 2010-2012 Ettus Research LLC
+#
+
+##################################################
+# Carrier Sense Sources
+##################################################
+CARRIER_SENSE_SRCS = $(abspath $(addprefix $(BASE_DIR)/../carrier_sense/, \
+agc.vhd \
+autocorrelator.vhd \
+backoff_ctrl.vhd \
+backoff_ctrl_tb.vhd \
+bo_mux.vhd \
+carrier_sense_ctrl.vhd \
+carrier_sense_top.vhd \
+carrier_sense_top_tb.vhd \
+divider.vhd \
+compare.vhd \
+moving_avg.vhd \
+myfifo.vhd \
+readback_handler.vhd \
+rec_mux.vhd \
+receiver.vhd \
+rssi.vhd \
+settings_ctrl.vhd \
+settings_ctrl_tb.vhd \
+))

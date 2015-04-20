@@ -23,7 +23,7 @@ module gpio_atr
    (input clk, input reset,
     input set_stb, input [7:0] set_addr, input [31:0] set_data,
     input rx, input tx,
-    inout [WIDTH-1:0] gpio,
+    inout [WIDTH-1-7:0] gpio,
     output reg [31:0] gpio_readback
     );
    
@@ -63,7 +63,7 @@ module gpio_atr
      for(n=0;n<WIDTH;n=n+1)
        igpio[n] <= ddr[n] ? rgpio[n] : 1'bz;
 
-   assign     gpio = igpio;
+   assign     gpio = {igpio[WIDTH-1:12], igpio[4:0]};
 
    always @(posedge clk)
      gpio_readback <= gpio;

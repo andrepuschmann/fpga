@@ -163,6 +163,10 @@ module u2plus_core
    localparam SR_TX_CTRL  = 144;   // 6
    localparam SR_TX_DSP   = 160;   // 5
 
+   localparam SR_CS_SET   = 165;   // 1 -> Carrier Sense Settings
+   localparam SR_CS_THR   = 166;   // 1 -> Carrier Sense Threshold
+   localparam SR_CS_SLT   = 167;   // 1 -> Carrier Sense Slottime
+
    localparam SR_GPIO     = 184;   // 5
    localparam SR_UDP_SM   = 192;   // 64
 
@@ -442,7 +446,7 @@ module u2plus_core
    gpio_atr(.clk(dsp_clk),.reset(dsp_rst),
 	    .set_stb(set_stb_dsp),.set_addr(set_addr_dsp),.set_data(set_data_dsp),
 	    .rx(run_rx0_d1 | run_rx1_d1), .tx(run_tx),
-	    .gpio({io_tx,io_rx}), .gpio_readback(gpio_readback) );
+	    .gpio({io_tx,io_rx[15:12],io_rx[4:0]}), .gpio_readback(gpio_readback) );
 
    // /////////////////////////////////////////////////////////////////////////
    // Buffer Pool Status -- Slave #5
@@ -451,13 +455,14 @@ module u2plus_core
    localparam compat_num = {16'd11, 16'd1}; //major, minor
 
    wire [31:0] irq_readback = {18'b0, button, spi_ready, clk_status, serdes_link_up, 10'b0};
+	wire [31:0] cs_avg_rssi, cs_rssi, cs_readback, cs_status, cs_settings;
 
    wb_readback_mux buff_pool_status
      (.wb_clk_i(wb_clk), .wb_rst_i(wb_rst), .wb_stb_i(s5_stb),
       .wb_adr_i(s5_adr), .wb_dat_o(s5_dat_i), .wb_ack_o(s5_ack),
 
-      .word00(spi_readback),.word01(32'hffff_ffff),.word02(32'hffff_ffff),.word03(32'hffff_ffff),
-      .word04(32'hffff_ffff),.word05(32'hffff_ffff),.word06(32'hffff_ffff),.word07(32'hffff_ffff),
+      .word00(spi_readback),.word01(32'hffff_ffff),.word02(32'hffff_ffff),.word03(cs_avg_rssi),
+      .word04(cs_rssi),.word05(cs_settings),.word06(cs_readback),.word07(cs_status),
       .word08(status),.word09(32'hffff_ffff),.word10(32'hffff_ffff),
       .word11(vita_time[31:0]),.word12(compat_num),.word13(irq_readback),
       .word14(32'hffff_ffff),.word15(32'hffff_ffff)
@@ -647,31 +652,6 @@ module u2plus_core
       .rx_data_o(wr1_dat), .rx_src_rdy_o(wr1_ready_i), .rx_dst_rdy_i(wr1_ready_o),
       .debug() );
 
-   // /////////////////////////////////////////////////////////////////////////
-   // DSP RX 1
-   wire [31:0] 	 sample_rx1;
-   wire 	 strobe_rx1, clear_rx1;
-
-   always @(posedge dsp_clk)
-     run_rx1_d1 <= run_rx1;
-
-   ddc_chain #(.BASE(SR_RX_DSP1), .DSPNO(1)) ddc_chain1
-     (.clk(dsp_clk), .rst(dsp_rst), .clr(clear_rx1),
-      .set_stb(set_stb_dsp),.set_addr(set_addr_dsp),.set_data(set_data_dsp),
-      .set_stb_user(set_stb_user), .set_addr_user(set_addr_user), .set_data_user(set_data_user),
-      .rx_fe_i(rx_fe_i),.rx_fe_q(rx_fe_q),
-      .sample(sample_rx1), .run(run_rx1_d1), .strobe(strobe_rx1),
-      .debug() );
-
-   vita_rx_chain #(.BASE(SR_RX_CTRL1),.UNIT(2),.FIFOSIZE(DSP_RX_FIFOSIZE), .DSP_NUMBER(1)) vita_rx_chain1
-     (.clk(dsp_clk), .reset(dsp_rst),
-      .set_stb(set_stb_dsp),.set_addr(set_addr_dsp),.set_data(set_data_dsp),
-      .set_stb_user(set_stb_user), .set_addr_user(set_addr_user), .set_data_user(set_data_user),
-      .vita_time(vita_time), .overrun(overrun1),
-      .sample(sample_rx1), .run(run_rx1), .strobe(strobe_rx1), .clear_o(clear_rx1),
-      .rx_data_o(wr3_dat), .rx_src_rdy_o(wr3_ready_i), .rx_dst_rdy_i(wr3_ready_o),
-      .debug() );
-
    // ///////////////////////////////////////////////////////////////////////////////////
    // DSP TX
 
@@ -707,7 +687,9 @@ module u2plus_core
 
    wire [23:0] 	 tx_fe_i, tx_fe_q;
    wire [31:0]   sample_tx;
-   wire strobe_tx;
+   wire strobe_tx, cs_ena, new_sample, send;
+   wire [63:0] cs_data;
+   wire eof;
 
    vita_tx_chain #(.BASE(SR_TX_CTRL), .FIFOSIZE(DSP_TX_FIFOSIZE),
 		   .REPORT_ERROR(1), .DO_FLOW_CONTROL(1),
@@ -722,6 +704,7 @@ module u2plus_core
       .err_data_o(tx_err_data), .err_src_rdy_o(tx_err_src_rdy), .err_dst_rdy_i(tx_err_dst_rdy),
       .sample(sample_tx), .strobe(strobe_tx),
       .underrun(underrun), .run(run_tx), .clear_o(clear_tx),
+		.cs_ena_o(cs_ena),.cs_data_o(cs_data),.new_sample_o(new_sample),.send_i(send),.eof_o(eof),
       .debug(debug_vt));
 
    duc_chain #(.BASE(SR_TX_DSP), .DSPNO(0)) duc_chain
@@ -760,6 +743,17 @@ module u2plus_core
      (.clk(dsp_clk), .rst(dsp_rst), .set_stb(set_stb_dsp), .set_addr(set_addr_dsp), .set_data(set_data_dsp),
       .pps(pps_in), .vita_time(vita_time), .vita_time_pps(vita_time_pps), .pps_int(pps_int),
       .exp_time_in(exp_time_in), .exp_time_out(exp_time_out), .good_sync(good_sync), .debug(debug_sync));
+
+    // /////////////////////////////////////////////////////////////////////////
+   // Carrier Sense
+    carrier_sense_top #(.settings_addr(SR_CS_SET), .threshold_addr(SR_CS_THR), .slottime_addr(SR_CS_SLT)) carrier_sense
+        (.clk(dsp_clk),.rst(dsp_rst),
+         .reg_strobe_in(set_stb_dsp),.reg_addr_in(set_addr_dsp),.reg_data_in(set_data_dsp),
+         .new_sample_in(new_sample),.sample_in(sample_rx0),.strobe_in(strobe_rx0),
+         .send_out(send),.readback_out(cs_readback),.settings_out(cs_settings),
+         .avg_rssi_out(cs_avg_rssi), .rssi_out(cs_rssi),
+         .cs_ena_in(cs_ena),.cs_data_in(cs_data),.status_out(cs_status),.agc_out(io_rx[11:5]),
+         .eof_in(eof), .debug());
 
    // /////////////////////////////////////////////////////////////////////////////////////////
    // Debug Pins

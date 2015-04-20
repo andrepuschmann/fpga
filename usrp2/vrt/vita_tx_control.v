@@ -37,6 +37,11 @@ module vita_tx_control
     output reg run,
     input strobe,
 
+	 input send_i,
+	 output new_sample_o,
+
+	 output eof_o,
+
     output [31:0] debug
     );
 
@@ -47,6 +52,8 @@ module vita_tx_control
    wire        sob = sample_fifo_i[82];
    wire        send_at = sample_fifo_i[83];
    wire        seqnum_err = sample_fifo_i[84];
+
+	assign      eof_o = eob & eop;
    
    wire        now, early, late, too_early;
 
@@ -94,6 +101,8 @@ module vita_tx_control
    wire        policy_next_burst = error_policy[2];
    reg 	       send_error, send_ack;
    
+	assign new_sample_o = sample_fifo_src_rdy_i;
+
    always @(posedge clk)
      if(reset | clear)
        begin
@@ -112,9 +121,9 @@ module vita_tx_control
 		  error_code <= CODE_SEQ_ERROR;
 		  send_error <= 1;
 	       end
-	     else if(~send_at | now)
+	     else if((~send_at | now) & send_i)
 	       ibs_state <= IBS_RUN;
-	     else if((late_qual & late_del) | too_early)
+	     else if(((late_qual & late_del) | too_early) & send_i)
 	       begin
 		  ibs_state <= IBS_ERROR;
 		  error_code <= CODE_TIME_ERROR;

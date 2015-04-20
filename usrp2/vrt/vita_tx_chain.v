@@ -33,6 +33,9 @@ module vita_tx_chain
     output [35:0] err_data_o, output err_src_rdy_o, input err_dst_rdy_i,
     output [31:0] sample, input strobe,
     output underrun, output run, output clear_o,
+	 output cs_ena_o, output[63:0] cs_data_o,
+	 input send_i, output new_sample_o,
+    output eof_o,
     output [31:0] debug);
 
    localparam MAXCHAN = 1;
@@ -118,7 +121,7 @@ module vita_tx_chain
      (.clk(clk), .reset(reset), .clear(clear), .clear_seqnum(clear_seqnum),
       .set_stb(set_stb),.set_addr(set_addr),.set_data(set_data),
       .data_i(tx_data_int1), .src_rdy_i(tx_src_rdy_int1), .dst_rdy_o(tx_dst_rdy_int1),
-      .sample_fifo_o(tx1_data), .sample_fifo_src_rdy_o(tx1_src_rdy), .sample_fifo_dst_rdy_i(tx1_dst_rdy),
+      .sample_fifo_o({tx1_data,cs_ena_o,cs_data_o}), .sample_fifo_src_rdy_o(tx1_src_rdy), .sample_fifo_dst_rdy_i(tx1_dst_rdy),
       .current_seqnum(current_seqnum),
       .debug(debug_vtd) );
 
@@ -128,6 +131,7 @@ module vita_tx_chain
       .vita_time(vita_time), .error(error), .ack(ack), .error_code(error_code),
       .sample_fifo_i(tx1_data), .sample_fifo_src_rdy_i(tx1_src_rdy), .sample_fifo_dst_rdy_o(tx1_dst_rdy),
       .sample(sample), .run(run), .strobe(strobe), .packet_consumed(packet_consumed),
+		.new_sample_o(new_sample_o), .eof_o(eof_o),.send_i(send_i),
       .debug(debug_vtc) );
 
    wire [35:0] 		flow_data, err_data_int;
