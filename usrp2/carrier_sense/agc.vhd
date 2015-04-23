@@ -39,42 +39,41 @@ begin
             elsif delay > 0 then
                 delay   <= delay - 1;
             --elsif (cor_strobe_in = '1' and unsigned(cor_in) > 25) then
-            elsif ((cor_strobe_in = '1' and unsigned(cor_in) > 25) or (power_strobe_in = '1' and signed(power_in) > 41744000)) then
-				
+            elsif ((cor_strobe_in = '1' and unsigned(cor_in) > 25)) then
 				
 				
 if signed(power_in) >  1661880964  then
-     a <= std_logic_vector(to_unsigned( 4 , 7));
-elsif signed(power_in) >  1048576000  then
-     a <= std_logic_vector(to_unsigned( 5 , 7));
-elsif signed(power_in) >  661606728  then
-     a <= std_logic_vector(to_unsigned( 6 , 7));
-elsif signed(power_in) >  417445624  then
      a <= std_logic_vector(to_unsigned( 7 , 7));
-elsif signed(power_in) >  263390383  then
+elsif signed(power_in) >  1048576000  then
      a <= std_logic_vector(to_unsigned( 64 , 7));
-elsif signed(power_in) >  166188096  then
+elsif signed(power_in) >  661606728  then
      a <= std_logic_vector(to_unsigned( 65 , 7));
-elsif signed(power_in) >  104857600  then
+elsif signed(power_in) >  417445624  then
      a <= std_logic_vector(to_unsigned( 66 , 7));
-elsif signed(power_in) >  66160673  then
+elsif signed(power_in) >  263390383  then
      a <= std_logic_vector(to_unsigned( 67 , 7));
-elsif signed(power_in) >  41744562  then
+elsif signed(power_in) >  166188096  then
      a <= std_logic_vector(to_unsigned( 68 , 7));
-elsif signed(power_in) >  26339038  then
+elsif signed(power_in) >  104857600  then
      a <= std_logic_vector(to_unsigned( 69 , 7));
-elsif signed(power_in) >  16618810  then
+elsif signed(power_in) >  66160673  then
      a <= std_logic_vector(to_unsigned( 70 , 7));
-elsif signed(power_in) >  10485760  then
+elsif signed(power_in) >  41744562  then
      a <= std_logic_vector(to_unsigned( 96 , 7));
-elsif signed(power_in) >  6616067  then
+elsif signed(power_in) >  26339038  then
      a <= std_logic_vector(to_unsigned( 97 , 7));
-elsif signed(power_in) >  4174456  then
+elsif signed(power_in) >  16618810  then
      a <= std_logic_vector(to_unsigned( 98 , 7));
-elsif signed(power_in) >  2633904  then
+elsif signed(power_in) >  10485760  then
      a <= std_logic_vector(to_unsigned( 99 , 7));
-elsif signed(power_in) >  1661881  then
+elsif signed(power_in) >  6616067  then
      a <= std_logic_vector(to_unsigned( 100 , 7));
+elsif signed(power_in) >  4174456  then
+     a <= std_logic_vector(to_unsigned( 101 , 7));
+elsif signed(power_in) >  2633904  then
+     a <= std_logic_vector(to_unsigned( 102 , 7));
+elsif signed(power_in) >  1661881  then
+     a <= std_logic_vector(to_unsigned( 103 , 7));
 elsif signed(power_in) >  1048576  then
      a <= std_logic_vector(to_unsigned( 104 , 7));
 elsif signed(power_in) >  661607  then
@@ -124,7 +123,6 @@ elsif signed(power_in) >  42  then
 else
      a <= std_logic_vector(to_unsigned( 127 , 7));
 end if;
-
                 delay <= 50000; -- 50 symbols * 80 samples * 10 for clock
 
             -- if no frame default power
